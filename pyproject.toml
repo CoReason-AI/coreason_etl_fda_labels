@@ -85,3 +85,11 @@ omit = ["tests/*"]
 
 [tool.deptry]
 ignore = ["DEP002"]
+
+[[tool.mypy.overrides]]
+module = "ijson.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "dlt.*"
+ignore_missing_imports = true
