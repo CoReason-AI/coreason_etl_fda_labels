@@ -1,0 +1,24 @@
+version: 2
+
+sources:
+  - name: openfda
+    description: >
+      The Bronze layer schema containing raw openFDA label data ingested via dlt.
+      Data is stored as a JSONB payload to accommodate highly nested and varying schemas
+      across different OTC and prescription drugs.
+    tables:
+      - name: bronze_fda_labels_raw
+        description: >
+          The raw Polars-batched JSON records parsed via ijson from the openFDA zip stream.
+        columns:
+          - name: partition_url
+            description: The URL of the source openFDA ZIP file.
+          - name: ingestion_ts
+            description: The ISO 8601 timestamp of when the record was ingested.
+          - name: coreason_id
+            description: The UUIDv5 generated from the NAMESPACE_FDALABEL and set_id.
+            tests:
+              - unique
+              - not_null
+          - name: raw_data
+            description: The complete unstructured JSONB payload for the specific label item.
