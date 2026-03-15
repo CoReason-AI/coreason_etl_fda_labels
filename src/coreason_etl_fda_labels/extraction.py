@@ -51,22 +51,17 @@ class EpistemicExtractionTask:
         """
         df = pl.DataFrame({"raw_data": batch})
 
-        # Fast extraction of set_id without polluting raw_data
-        set_id_series = df.select(
-            pl.col("raw_data").map_elements(
-                lambda x: x.get("set_id") if isinstance(x, dict) else None, return_dtype=pl.String
-            )
-        ).to_series()
+        # Extract the set_id from the nested JSON object
+        df = df.with_columns(pl.col("raw_data").struct.field("set_id").alias("set_id"))
 
-        # Generate UUIDs deterministically
-        coreason_id_series = set_id_series.map_elements(
-            lambda x: str(uuid.uuid5(NAMESPACE_FDALABEL, str(x))) if x else None,
-            return_dtype=pl.String,
-        )
-
-        # Build the final dataframe with new columns attached
+        # Shift-Left UUID5 Generation via map_batches
         df = df.with_columns(
-            coreason_id_series.alias("coreason_id"),
+            pl.col("set_id")
+            .map_batches(
+                lambda s: pl.Series([str(uuid.uuid5(NAMESPACE_FDALABEL, str(x))) if x else None for x in s]),
+                return_dtype=pl.String,
+            )
+            .alias("coreason_id"),
             pl.lit(partition_metadata).alias("partition_url"),
         )
 
