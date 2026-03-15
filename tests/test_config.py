@@ -35,7 +35,7 @@ def test_ingestion_config_manifest_invalid_url() -> None:
         IngestionConfigManifest(discovery_endpoint="not-a-url")
 
 
-@given(url_str=st.from_regex(r"^https://[a-z0-9-]+\.[a-z]{2,}/[a-zA-Z0-9/_-]*$", fullmatch=True))  # type: ignore[misc]
+@given(url_str=st.from_regex(r"^https://[a-z0-9-]+\.[a-z]{2,}/[a-zA-Z0-9/_-]*$", fullmatch=True))
 def test_ingestion_config_manifest_hypothesis_valid_url(url_str: str) -> None:
     """Validate robust URL parsing using hypothesis generated strings.
     Restricts domain to lowercase to avoid Pydantic's automatic lowercasing from failing the exact match.
