@@ -32,3 +32,26 @@ models:
         description: Timestamp when the initial record was ingested into Bronze.
         tests:
           - not_null
+
+  - name: silver_fda_application_numbers
+    description: >
+      The Silver layer table responsible for unnesting the 1-to-many relationship between
+      FDA labels and their application numbers. It standardizes the application numbers
+      by removing alphabetic prefixes (e.g., NDA, ANDA) and whitespace.
+    columns:
+      - name: coreason_id
+        description: Primary key generated via UUIDv5 from the namespace and set_id.
+        tests:
+          - not_null
+      - name: source_id
+        description: The SPL set_id natively from the FDA JSON payload.
+        tests:
+          - not_null
+      - name: application_number
+        description: The standardized application number stripped of prefixes and whitespace.
+        tests:
+          - not_null
+      - name: ingestion_ts
+        description: Timestamp when the initial record was ingested into Bronze.
+        tests:
+          - not_null
