@@ -1,0 +1,50 @@
+version: 2
+
+models:
+  - name: gold_fda_label_to_application_map
+    description: >
+      A bridging table mapping the set_id to the standardized application_number
+      to allow seamless JOINs with the FDA Orange Book pipeline.
+    columns:
+      - name: coreason_id
+        description: Primary key generated via UUIDv5 from the namespace and set_id.
+        tests:
+          - not_null
+      - name: source_id
+        description: The SPL set_id natively from the FDA JSON payload.
+        tests:
+          - not_null
+      - name: application_number
+        description: The standardized application number.
+        tests:
+          - not_null
+      - name: ingestion_ts
+        description: Timestamp when the initial record was ingested into Bronze.
+        tests:
+          - not_null
+
+  - name: gold_fda_clinical_text_index
+    description: >
+      A highly structured, text-searchable view specifically designed to feed CoReason's vector database.
+      It concatenates brand_name, generic_name, and the distinct clinical sections into unified, chunkable context blocks.
+    columns:
+      - name: coreason_id
+        description: Primary key generated via UUIDv5 from the namespace and set_id.
+        tests:
+          - unique
+          - not_null
+      - name: source_id
+        description: The SPL set_id natively from the FDA JSON payload.
+        tests:
+          - unique
+          - not_null
+      - name: brand_name
+        description: The brand name of the label.
+      - name: generic_name
+        description: The generic name of the label.
+      - name: clinical_context_block
+        description: A unified, chunkable text block containing concatenated clinical sections.
+      - name: ingestion_ts
+        description: Timestamp when the initial record was ingested into Bronze.
+        tests:
+          - not_null

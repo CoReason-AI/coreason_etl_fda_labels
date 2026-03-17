@@ -20,7 +20,7 @@ from coreason_etl_fda_labels.extraction import EpistemicExtractionTask
 from coreason_etl_fda_labels.utils.logger import logger
 
 
-@dlt.source(max_table_nesting=0)  # type: ignore[misc]
+@dlt.source(max_table_nesting=0)  # type: ignore[misc, unused-ignore]
 def fda_spl_source(config: IngestionConfigManifest | None = None) -> dlt.sources.DltResource:
     """
     Epistemic boundary defining the ingestion manifold for the openFDA SPL dataset.
@@ -38,7 +38,7 @@ def fda_spl_source(config: IngestionConfigManifest | None = None) -> dlt.sources
     if config is None:
         config = IngestionConfigManifest()
 
-    @dlt.resource(name="bronze_fda_labels_raw", write_disposition="append")  # type: ignore[misc]
+    @dlt.resource(name="bronze_fda_labels_raw", write_disposition="append")  # type: ignore[misc, unused-ignore]
     def bronze_fda_labels_raw() -> Iterator[list[dict[str, Any]]]:
         logger.info("Initializing Bronze Ingestion Manifold")
 
