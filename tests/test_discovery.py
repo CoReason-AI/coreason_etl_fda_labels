@@ -12,6 +12,8 @@
 import pytest
 import requests
 import responses
+from hypothesis import given
+from hypothesis import strategies as st
 from pydantic import HttpUrl
 
 from coreason_etl_fda_labels.config import IngestionConfigManifest
@@ -38,6 +40,23 @@ def test_partition_locator_manifest_sorts_urls() -> None:
         "https://example.com/b.zip",
         "https://example.com/c.zip",
     ]
+
+
+@given(
+    url_strs=st.lists(
+        st.from_regex(r"^https://[a-z0-9-]+\.[a-z]{2,}/[a-zA-Z0-9/_-]*\.zip$", fullmatch=True),
+        min_size=1,
+        max_size=10,
+    )
+)
+def test_partition_locator_manifest_sorts_urls_hypothesis(url_strs: list[str]) -> None:
+    """Validate that PartitionLocatorManifest correctly sorts dynamically generated URLs."""
+    urls = [HttpUrl(url) for url in url_strs]
+    manifest = PartitionLocatorManifest(partition_urls=urls)
+
+    expected_sorted = sorted(url_strs)
+    actual_sorted = [str(url) for url in manifest.partition_urls]
+    assert actual_sorted == expected_sorted
 
 
 @responses.activate
