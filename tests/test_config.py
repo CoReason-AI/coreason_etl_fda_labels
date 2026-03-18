@@ -42,3 +42,10 @@ def test_ingestion_config_manifest_hypothesis_valid_url(url_str: str) -> None:
     """
     config = IngestionConfigManifest(discovery_endpoint=HttpUrl(url_str))
     assert str(config.discovery_endpoint) == url_str
+
+
+@given(invalid_url_str=st.text().filter(lambda x: not x.strip().lower().startswith("http")))
+def test_ingestion_config_manifest_hypothesis_invalid_url(invalid_url_str: str) -> None:
+    """Validate robust rejection of invalid URLs using hypothesis generated strings."""
+    with pytest.raises(ValidationError):
+        IngestionConfigManifest(discovery_endpoint=invalid_url_str)  # type: ignore[arg-type, unused-ignore]
