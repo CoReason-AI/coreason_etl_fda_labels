@@ -13,6 +13,7 @@ import json
 import uuid
 import zipfile
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 import requests
@@ -33,8 +34,87 @@ def create_mock_zip(json_content: list[dict[str, Any]], filename: str = "data.js
     return in_memory_zip.read()
 
 
+class MockNamedTemporaryFile:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        del args
+        del kwargs
+        self.name = "/fake/temp/file.zip"
+        self._io = io.BytesIO()
+
+    def __enter__(self) -> "MockNamedTemporaryFile":
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        pass
+
+    def write(self, data: bytes) -> None:
+        self._io.write(data)
+
+    def close(self) -> None:
+        pass
+
+
+original_zipfile = zipfile.ZipFile
+
+
+@pytest.fixture
+def mock_tempfile() -> Any:
+    """Fixture to mock temporary file and disk I/O for extraction tasks."""
+    mock_file = MockNamedTemporaryFile()
+
+    def mock_zipfile_init(
+        file: Any,
+        mode: str = "r",
+        compression: int = zipfile.ZIP_STORED,
+        allowZip64: bool = True,  # noqa: N803
+        compresslevel: int | None = None,
+        *,
+        strict_timestamps: bool = True,
+        metadata_encoding: str | None = None,
+    ) -> Any:
+        if file == mock_file.name:
+            file = mock_file._io
+        # use cast or ignore to satisfy mypy overload resolution
+        return original_zipfile(  # type: ignore[call-overload]
+            file,
+            mode=mode,
+            compression=compression,
+            allowZip64=allowZip64,
+            compresslevel=compresslevel,
+            strict_timestamps=strict_timestamps,
+            metadata_encoding=metadata_encoding,
+        )
+
+    with (
+        patch("tempfile.NamedTemporaryFile", return_value=mock_file),
+        patch("zipfile.ZipFile", side_effect=mock_zipfile_init),
+        patch("os.unlink"),
+        patch("os.path.exists", return_value=True),
+    ):
+        # We need to rewind the mock file before ZipFile reads it
+        original_enter = mock_file.__enter__
+
+        def custom_enter(*args: Any, **kwargs: Any) -> MockNamedTemporaryFile:
+            return original_enter(*args, **kwargs)
+
+        def reset_io() -> None:
+            mock_file._io.seek(0)
+
+        # Hook into close to simulate file readiness for zipfile reading
+        original_close = mock_file.close
+
+        def custom_close() -> None:
+            original_close()
+            reset_io()
+
+        mock_file.close = custom_close  # type: ignore
+
+        yield mock_file
+
+
 @responses.activate
-def test_epistemic_extraction_task_success() -> None:
+def test_epistemic_extraction_task_success(mock_tempfile: Any) -> None:
+    del mock_tempfile
     """Test successful streaming, JSON extraction, and deterministic ID generation."""
     test_url_str = "https://api.fda.gov/mock_partition_1.zip"
     test_url = HttpUrl(test_url_str)
@@ -91,7 +171,8 @@ def test_epistemic_extraction_task_success() -> None:
 
 
 @responses.activate
-def test_epistemic_extraction_task_http_error() -> None:
+def test_epistemic_extraction_task_http_error(mock_tempfile: Any) -> None:
+    del mock_tempfile
     """Test resilience against upstream HTTP failures."""
     test_url_str = "https://api.fda.gov/mock_partition_fail.zip"
     test_url = HttpUrl(test_url_str)
@@ -108,7 +189,8 @@ def test_epistemic_extraction_task_http_error() -> None:
 
 
 @responses.activate
-def test_epistemic_extraction_task_no_json_files() -> None:
+def test_epistemic_extraction_task_no_json_files(mock_tempfile: Any) -> None:
+    del mock_tempfile
     """Test resilience against corrupt or missing JSON file structure inside the archive."""
     test_url_str = "https://api.fda.gov/mock_partition_empty.zip"
     test_url = HttpUrl(test_url_str)
@@ -133,7 +215,8 @@ def test_epistemic_extraction_task_no_json_files() -> None:
 
 
 @responses.activate
-def test_epistemic_extraction_task_corrupt_zip() -> None:
+def test_epistemic_extraction_task_corrupt_zip(mock_tempfile: Any) -> None:
+    del mock_tempfile
     """Test handling of structurally invalid binary zip archives."""
     test_url_str = "https://api.fda.gov/mock_partition_corrupt.zip"
     test_url = HttpUrl(test_url_str)
@@ -153,7 +236,8 @@ def test_epistemic_extraction_task_corrupt_zip() -> None:
 
 
 @responses.activate
-def test_epistemic_extraction_task_batching() -> None:
+def test_epistemic_extraction_task_batching(mock_tempfile: Any) -> None:
+    del mock_tempfile
     """Test memory-safe batching when number of items exceeds chunk size."""
     test_url_str = "https://api.fda.gov/mock_partition_large.zip"
     test_url = HttpUrl(test_url_str)
