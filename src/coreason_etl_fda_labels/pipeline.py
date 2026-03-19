@@ -38,8 +38,8 @@ def fda_spl_source(config: IngestionConfigManifest | None = None) -> dlt.sources
     if config is None:
         config = IngestionConfigManifest()
 
-    @dlt.resource(name="bronze_fda_labels_raw", write_disposition="append")  # type: ignore[misc, unused-ignore]
-    def bronze_fda_labels_raw() -> Iterator[list[dict[str, Any]]]:
+    @dlt.resource(name="coreason_etl_fda_labels_bronze_fda_labels_raw", write_disposition="append")  # type: ignore[misc, unused-ignore]
+    def coreason_etl_fda_labels_bronze_fda_labels_raw() -> Iterator[list[dict[str, Any]]]:
         logger.info("Initializing Bronze Ingestion Manifold")
 
         # 1. Execute Discovery Phase
@@ -57,4 +57,4 @@ def fda_spl_source(config: IngestionConfigManifest | None = None) -> dlt.sources
                     record["ingestion_ts"] = ingestion_ts
                 yield batch
 
-    return bronze_fda_labels_raw()
+    return coreason_etl_fda_labels_bronze_fda_labels_raw()

@@ -13,7 +13,7 @@ WITH raw_labels AS (
         coreason_id,
         raw_data,
         ingestion_ts
-    FROM {{ source('openfda', 'bronze_fda_labels_raw') }}
+    FROM {{ source('bronze', 'coreason_etl_fda_labels_bronze_fda_labels_raw') }}
 ),
 
 unnested_applications AS (

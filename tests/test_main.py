@@ -43,7 +43,7 @@ def test_epistemic_pipeline_execution_intent_success(
     mock_pipeline.assert_called_once_with(
         pipeline_name="coreason_etl_fda_labels",
         destination="postgres",
-        dataset_name="openfda",
+        dataset_name="bronze",
     )
     mock_source.assert_called_once_with(config=config)
     mock_pipeline_instance.run.assert_called_once_with(mock_source_instance)

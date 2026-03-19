@@ -42,9 +42,9 @@ def test_fda_spl_source_configuration() -> None:
     """Verify that the source enforces max_table_nesting=0 correctly."""
     source = fda_spl_source()
     assert source.max_table_nesting == 0
-    # source.name is fda_spl_source, resource name is bronze_fda_labels_raw
+    # source.name is fda_spl_source, resource name is coreason_etl_fda_labels_bronze_fda_labels_raw
     assert source.name == "fda_spl_source"
-    assert "bronze_fda_labels_raw" in source.resources
+    assert "coreason_etl_fda_labels_bronze_fda_labels_raw" in source.resources
 
 
 @patch("coreason_etl_fda_labels.pipeline.datetime")
@@ -57,7 +57,7 @@ def test_fda_spl_source_yields_correct_records(
     mock_datetime.timezone = timezone
 
     source = fda_spl_source(config=DUMMY_CONFIG)
-    resource = source.resources["bronze_fda_labels_raw"]
+    resource = source.resources["coreason_etl_fda_labels_bronze_fda_labels_raw"]
 
     # Iterate through the resource generator (since dlt unrolls yield to the resource itself)
     # resource yields elements of the iterator directly, which are dictionaries, not lists of dicts
