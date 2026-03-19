@@ -49,3 +49,55 @@ def test_ingestion_config_manifest_hypothesis_invalid_url(invalid_url_str: str) 
     """Validate robust rejection of invalid URLs using hypothesis generated strings."""
     with pytest.raises(ValidationError):
         IngestionConfigManifest(discovery_endpoint=invalid_url_str)  # type: ignore[arg-type, unused-ignore]
+
+
+@given(
+    invalid_scheme_url=st.builds(
+        lambda scheme, domain, path: f"{scheme}://{domain}/{path}",
+        scheme=st.sampled_from(["ftp", "file", "ws", "wss", "tcp", "udp", "gopher", "mailto", "data"]),
+        domain=st.from_regex(r"^[a-z0-9-]+\.[a-z]{2,}$", fullmatch=True),
+        path=st.from_regex(r"^[a-zA-Z0-9/_-]*$", fullmatch=True),
+    )
+)
+def test_ingestion_config_manifest_hypothesis_invalid_scheme(invalid_scheme_url: str) -> None:
+    """Validate that IngestionConfigManifest rejects URLs with non-HTTP/HTTPS schemes."""
+    with pytest.raises(ValidationError):
+        IngestionConfigManifest(discovery_endpoint=invalid_scheme_url)  # type: ignore[arg-type, unused-ignore]
+
+
+@given(
+    invalid_host_url=st.builds(
+        lambda scheme, invalid_chars, path: f"{scheme}://domain{invalid_chars}name/{path}",
+        scheme=st.sampled_from(["http", "https"]),
+        invalid_chars=st.sampled_from([" ", "<", ">", "^", "|"]),
+        path=st.from_regex(r"^[a-zA-Z0-9/_-]+$", fullmatch=True),
+    )
+)
+def test_ingestion_config_manifest_hypothesis_invalid_host(invalid_host_url: str) -> None:
+    """Validate that IngestionConfigManifest rejects HTTP URLs with invalid host characters."""
+    with pytest.raises(ValidationError):
+        IngestionConfigManifest(discovery_endpoint=invalid_host_url)  # type: ignore[arg-type, unused-ignore]
+
+
+@given(
+    partition_urls=st.lists(
+        st.from_regex(r"^https://[a-z0-9-]+\.[a-z]{2,}/[a-zA-Z0-9/_-]*\.zip$", fullmatch=True),
+        min_size=1,
+        max_size=20,
+        unique=True,
+    )
+)
+def test_partition_locator_manifest_hypothesis_sorting(partition_urls: list[str]) -> None:
+    """Validate that PartitionLocatorManifest deterministically sorts valid partition URLs.
+    This fulfills the requirement of data determinism for consistent hashing.
+    """
+    from pydantic import HttpUrl
+
+    from coreason_etl_fda_labels.discovery import PartitionLocatorManifest
+
+    urls = [HttpUrl(url) for url in partition_urls]
+    manifest = PartitionLocatorManifest(partition_urls=urls)
+
+    expected_sorted = sorted(partition_urls)
+    actual_sorted = [str(url) for url in manifest.partition_urls]
+    assert actual_sorted == expected_sorted
