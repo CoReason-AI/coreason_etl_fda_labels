@@ -1,13 +1,13 @@
 version: 2
 
 sources:
-  - name: openfda
+  - name: bronze
     description: >
       The Bronze layer schema containing raw openFDA label data ingested via dlt.
       Data is stored as a JSONB payload to accommodate highly nested and varying schemas
       across different OTC and prescription drugs.
     tables:
-      - name: bronze_fda_labels_raw
+      - name: coreason_etl_fda_labels_bronze_fda_labels_raw
         description: >
           The raw Polars-batched JSON records parsed via ijson from the openFDA zip stream.
         columns:

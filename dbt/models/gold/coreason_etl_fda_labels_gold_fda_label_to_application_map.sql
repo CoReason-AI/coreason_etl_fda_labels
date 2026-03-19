@@ -13,4 +13,4 @@ SELECT
     source_id,
     application_number,
     ingestion_ts
-FROM {{ ref('silver_fda_application_numbers') }}
+FROM {{ ref('coreason_etl_fda_labels_silver_fda_application_numbers') }}

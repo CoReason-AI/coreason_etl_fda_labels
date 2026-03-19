@@ -5,7 +5,7 @@ sources:
     schema: bronze
     description: "The Bronze layer ingestion manifold for the openFDA SPL dataset."
     tables:
-      - name: bronze_fda_labels_raw
+      - name: coreason_etl_fda_labels_bronze_fda_labels_raw
         description: "The raw JSON representation of FDA drug labels and prescribing information. This data has been ingested losslessly with a strictly typed UUIDv5 coreason_id."
         columns:
           - name: _dlt_id
