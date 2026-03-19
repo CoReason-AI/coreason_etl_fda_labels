@@ -155,3 +155,65 @@ def test_partition_locator_manifest_hypothesis_mixed_case_sorting(partition_urls
 
     actual_sorted = [str(url) for url in manifest.partition_urls]
     assert actual_sorted == expected_sorted
+
+
+@given(
+    auth_url=st.builds(
+        lambda scheme, user, password, domain, path: f"{scheme}://{user}:{password}@{domain}/{path}",
+        scheme=st.sampled_from(["http", "https"]),
+        user=st.from_regex(r"^[a-zA-Z0-9]+$", fullmatch=True),
+        password=st.from_regex(r"^[a-zA-Z0-9]+$", fullmatch=True),
+        domain=st.from_regex(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?\.[a-z]{2,}$", fullmatch=True),
+        path=st.from_regex(r"^[a-zA-Z0-9/_-]*$", fullmatch=True),
+    )
+)
+def test_ingestion_config_manifest_hypothesis_auth_url(auth_url: str) -> None:
+    """Validate IngestionConfigManifest accepts URLs with embedded basic authentication (username/password)."""
+    config = IngestionConfigManifest(discovery_endpoint=HttpUrl(auth_url))
+    assert str(config.discovery_endpoint) == str(HttpUrl(auth_url))
+
+
+@given(
+    ip_url=st.builds(
+        lambda scheme, ip, port, path: f"{scheme}://{ip}:{port}/{path}",
+        scheme=st.sampled_from(["http", "https"]),
+        ip=st.ip_addresses(v=4).map(str),
+        port=st.integers(min_value=1, max_value=65535),
+        path=st.from_regex(r"^[a-zA-Z0-9/_-]*$", fullmatch=True),
+    )
+)
+def test_ingestion_config_manifest_hypothesis_ipv4_host_url(ip_url: str) -> None:
+    """Validate IngestionConfigManifest accepts valid IPv4 hosts."""
+    config = IngestionConfigManifest(discovery_endpoint=HttpUrl(ip_url))
+    assert str(config.discovery_endpoint) == str(HttpUrl(ip_url))
+
+
+@given(
+    ipv6_url=st.builds(
+        lambda scheme, ip, port, path: f"{scheme}://[{ip}]:{port}/{path}",
+        scheme=st.sampled_from(["http", "https"]),
+        ip=st.ip_addresses(v=6).map(str),
+        port=st.integers(min_value=1, max_value=65535),
+        path=st.from_regex(r"^[a-zA-Z0-9/_-]*$", fullmatch=True),
+    )
+)
+def test_ingestion_config_manifest_hypothesis_ipv6_host_url(ipv6_url: str) -> None:
+    """Validate IngestionConfigManifest accepts valid IPv6 hosts wrapped in brackets."""
+    config = IngestionConfigManifest(discovery_endpoint=HttpUrl(ipv6_url))
+    assert str(config.discovery_endpoint) == str(HttpUrl(ipv6_url))
+
+
+@given(
+    long_url=st.builds(
+        lambda scheme, domain, path, query: f"{scheme}://{domain}/{path}?q={query}",
+        scheme=st.sampled_from(["http", "https"]),
+        domain=st.from_regex(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?\.[a-z]{2,}$", fullmatch=True),
+        # Generates a path up to 900 characters to stress test URL parser length limits without hitting the 2083 limit.
+        path=st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789-_", min_size=500, max_size=900),
+        query=st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789-_", min_size=500, max_size=900),
+    )
+)
+def test_ingestion_config_manifest_hypothesis_extremely_long_url(long_url: str) -> None:
+    """Validate IngestionConfigManifest handles extremely long URLs (up to Pydantic's 2083 limit)."""
+    config = IngestionConfigManifest(discovery_endpoint=HttpUrl(long_url))
+    assert str(config.discovery_endpoint) == str(HttpUrl(long_url))
