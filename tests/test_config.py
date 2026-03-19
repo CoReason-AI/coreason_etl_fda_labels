@@ -35,7 +35,7 @@ def test_ingestion_config_manifest_invalid_url() -> None:
         IngestionConfigManifest(discovery_endpoint="not-a-url")
 
 
-@given(url_str=st.from_regex(r"^https://[a-z0-9-]+\.[a-z]{2,}/[a-zA-Z0-9/_-]*$", fullmatch=True))
+@given(url_str=st.from_regex(r"^https://[a-z0-9]([a-z0-9-]*[a-z0-9])?\.[a-z]{2,}/[a-zA-Z0-9/_-]*$", fullmatch=True))
 def test_ingestion_config_manifest_hypothesis_valid_url(url_str: str) -> None:
     """Validate robust URL parsing using hypothesis generated strings.
     Restricts domain to lowercase to avoid Pydantic's automatic lowercasing from failing the exact match.
@@ -55,7 +55,7 @@ def test_ingestion_config_manifest_hypothesis_invalid_url(invalid_url_str: str) 
     invalid_scheme_url=st.builds(
         lambda scheme, domain, path: f"{scheme}://{domain}/{path}",
         scheme=st.sampled_from(["ftp", "file", "ws", "wss", "tcp", "udp", "gopher", "mailto", "data"]),
-        domain=st.from_regex(r"^[a-z0-9-]+\.[a-z]{2,}$", fullmatch=True),
+        domain=st.from_regex(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?\.[a-z]{2,}$", fullmatch=True),
         path=st.from_regex(r"^[a-zA-Z0-9/_-]*$", fullmatch=True),
     )
 )
@@ -81,7 +81,7 @@ def test_ingestion_config_manifest_hypothesis_invalid_host(invalid_host_url: str
 
 @given(
     partition_urls=st.lists(
-        st.from_regex(r"^https://[a-z0-9-]+\.[a-z]{2,}/[a-zA-Z0-9/_-]*\.zip$", fullmatch=True),
+        st.from_regex(r"^https://[a-z0-9]([a-z0-9-]*[a-z0-9])?\.[a-z]{2,}/[a-zA-Z0-9/_-]*\.zip$", fullmatch=True),
         min_size=1,
         max_size=20,
         unique=True,
@@ -99,5 +99,59 @@ def test_partition_locator_manifest_hypothesis_sorting(partition_urls: list[str]
     manifest = PartitionLocatorManifest(partition_urls=urls)
 
     expected_sorted = sorted(partition_urls)
+    actual_sorted = [str(url) for url in manifest.partition_urls]
+    assert actual_sorted == expected_sorted
+
+
+@given(
+    complex_url=st.builds(
+        lambda scheme, domain, port, path, query, fragment: f"{scheme}://{domain}:{port}/{path}?{query}#{fragment}",
+        scheme=st.sampled_from(["http", "https"]),
+        domain=st.from_regex(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?\.[a-z]{2,}$", fullmatch=True),
+        port=st.integers(min_value=1, max_value=65535),
+        path=st.from_regex(r"^[a-zA-Z0-9/_-]*$", fullmatch=True),
+        query=st.from_regex(r"^[a-zA-Z0-9=&_-]+$", fullmatch=True),
+        fragment=st.from_regex(r"^[a-zA-Z0-9_-]+$", fullmatch=True),
+    )
+)
+def test_ingestion_config_manifest_hypothesis_complex_valid_url(complex_url: str) -> None:
+    """Validate IngestionConfigManifest accepts complex URLs with ports, paths, queries, and fragments."""
+    config = IngestionConfigManifest(discovery_endpoint=HttpUrl(complex_url))
+
+    # Pydantic normalizes URLs (e.g., stripping default ports like 80 for http or 443 for https).
+    # Thus, we compare the parsed output against what HttpUrl would naturally produce.
+    assert str(config.discovery_endpoint) == str(HttpUrl(complex_url))
+
+
+@given(
+    partition_urls=st.lists(
+        st.builds(
+            lambda domain, path: f"https://{domain}/{path}.zip",
+            domain=st.from_regex(
+                r"^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,}$", fullmatch=True
+            ),  # Note: mixed case here
+            path=st.from_regex(r"^[a-zA-Z0-9/_-]+$", fullmatch=True),
+        ),
+        min_size=2,
+        max_size=15,
+        unique=True,
+    )
+)
+def test_partition_locator_manifest_hypothesis_mixed_case_sorting(partition_urls: list[str]) -> None:
+    """Validate deterministic sorting of PartitionLocatorManifest with URLs containing mixed case domains.
+    Pydantic automatically lowercases domains, so the expected sorted output maps lowercase domains.
+    """
+    from pydantic import HttpUrl
+
+    from coreason_etl_fda_labels.discovery import PartitionLocatorManifest
+
+    urls = [HttpUrl(url) for url in partition_urls]
+    manifest = PartitionLocatorManifest(partition_urls=urls)
+
+    # To simulate the expected deterministic sort, we must lower the domain part like Pydantic does.
+    # Alternatively, just verify that it matches sorting the str() cast of the HttpUrls which normalizes them.
+    normalized_str_urls = [str(HttpUrl(u)) for u in partition_urls]
+    expected_sorted = sorted(normalized_str_urls)
+
     actual_sorted = [str(url) for url in manifest.partition_urls]
     assert actual_sorted == expected_sorted
