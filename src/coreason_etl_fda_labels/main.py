@@ -47,7 +47,7 @@ class EpistemicPipelineExecutionIntent:
         pipeline: Pipeline = dlt.pipeline(
             pipeline_name="coreason_etl_fda_labels",
             destination="postgres",
-            dataset_name="openfda",
+            dataset_name="bronze",
         )
 
         # Mount the primary epistemic source using the provided manifest

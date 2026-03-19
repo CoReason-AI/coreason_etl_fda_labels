@@ -19,5 +19,7 @@ models:
   coreason_etl_fda_labels:
     silver:
       +materialized: table
+      +schema: silver
     gold:
       +materialized: view
+      +schema: gold
