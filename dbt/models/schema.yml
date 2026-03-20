@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: silver_fda_labels
+  - name: coreason_etl_fda_labels_silver_fda_labels
     description: >
       The Silver layer table extracting core properties from the bronze_fda_labels_raw JSONB.
       It coalesces complex clinical text arrays into single text block strings for downstream mapping.
@@ -33,7 +33,7 @@ models:
         tests:
           - not_null
 
-  - name: silver_fda_application_numbers
+  - name: coreason_etl_fda_labels_silver_fda_application_numbers
     description: >
       The Silver layer table responsible for unnesting the 1-to-many relationship between
       FDA labels and their application numbers. It standardizes the application numbers
@@ -44,14 +44,14 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('silver_fda_labels')
+              to: ref('coreason_etl_fda_labels_silver_fda_labels')
               field: coreason_id
       - name: source_id
         description: The SPL set_id natively from the FDA JSON payload.
         tests:
           - not_null
           - relationships:
-              to: ref('silver_fda_labels')
+              to: ref('coreason_etl_fda_labels_silver_fda_labels')
               field: source_id
       - name: application_number
         description: The standardized application number stripped of prefixes and whitespace.
@@ -62,7 +62,7 @@ models:
         tests:
           - not_null
 
-  - name: gold_fda_label_to_application_map
+  - name: coreason_etl_fda_labels_gold_fda_label_to_application_map
     description: >
       A bridging table mapping the set_id to the standardized application_number
       to allow seamless JOINs with the FDA Orange Book pipeline.
@@ -72,14 +72,14 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('silver_fda_application_numbers')
+              to: ref('coreason_etl_fda_labels_silver_fda_application_numbers')
               field: coreason_id
       - name: source_id
         description: The SPL set_id natively from the FDA JSON payload.
         tests:
           - not_null
           - relationships:
-              to: ref('silver_fda_application_numbers')
+              to: ref('coreason_etl_fda_labels_silver_fda_application_numbers')
               field: source_id
       - name: application_number
         description: The standardized application number.
@@ -90,7 +90,7 @@ models:
         tests:
           - not_null
 
-  - name: gold_fda_clinical_text_index
+  - name: coreason_etl_fda_labels_gold_fda_clinical_text_index
     description: >
       A highly structured, text-searchable view specifically designed to feed CoReason's vector database.
       It concatenates brand_name, generic_name, and the distinct clinical sections into unified, chunkable context blocks.
@@ -101,7 +101,7 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('silver_fda_labels')
+              to: ref('coreason_etl_fda_labels_silver_fda_labels')
               field: coreason_id
       - name: source_id
         description: The SPL set_id natively from the FDA JSON payload.
@@ -109,7 +109,7 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('silver_fda_labels')
+              to: ref('coreason_etl_fda_labels_silver_fda_labels')
               field: source_id
       - name: brand_name
         description: The brand name of the label.

@@ -27,4 +27,4 @@ SELECT
         COALESCE(NULLIF(contraindications, ''), 'None')
     ) AS clinical_context_block,
     ingestion_ts
-FROM {{ ref('silver_fda_labels') }}
+FROM {{ ref('coreason_etl_fda_labels_silver_fda_labels') }}
