@@ -12,7 +12,7 @@ authors = [
     { name = "Akshaya M", email = "akshaya.movvar@coreason.ai" },
 ]
 dependencies = [
-    "dlt>=1.23.0",
+    "dlt[postgres]>=1.23.0",
     "ijson>=3.5.0",
     "loguru>=0.7.2",
     "polars>=1.39.0",
@@ -93,3 +93,5 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "dlt.*"
 ignore_missing_imports = true
+[tool.uv]
+override-dependencies = ["mashumaro>=3.17"]
