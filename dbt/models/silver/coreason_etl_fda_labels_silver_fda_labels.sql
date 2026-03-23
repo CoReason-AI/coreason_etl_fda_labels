@@ -26,5 +26,9 @@ SELECT
     ARRAY_TO_STRING(ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(raw_data->'boxed_warning') = 'array' THEN raw_data->'boxed_warning' ELSE '[]'::jsonb END)), E'\n\n') AS boxed_warning,
     ARRAY_TO_STRING(ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(raw_data->'adverse_reactions') = 'array' THEN raw_data->'adverse_reactions' ELSE '[]'::jsonb END)), E'\n\n') AS adverse_reactions,
     ARRAY_TO_STRING(ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(raw_data->'contraindications') = 'array' THEN raw_data->'contraindications' ELSE '[]'::jsonb END)), E'\n\n') AS contraindications,
+    ARRAY_TO_STRING(ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(raw_data->'active_ingredient') = 'array' THEN raw_data->'active_ingredient' ELSE '[]'::jsonb END)), E'\n\n') AS active_ingredient,
+    ARRAY_TO_STRING(ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(raw_data->'dosage_and_administration') = 'array' THEN raw_data->'dosage_and_administration' ELSE '[]'::jsonb END)), E'\n\n') AS dosage_and_administration,
+    ARRAY_TO_STRING(ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(raw_data->'inactive_ingredient') = 'array' THEN raw_data->'inactive_ingredient' ELSE '[]'::jsonb END)), E'\n\n') AS inactive_ingredient,
+    ARRAY_TO_STRING(ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(raw_data->'package_label_principal_display_panel') = 'array' THEN raw_data->'package_label_principal_display_panel' ELSE '[]'::jsonb END)), E'\n\n') AS package_label_principal_display_panel,
     ingestion_ts
 FROM raw_labels
