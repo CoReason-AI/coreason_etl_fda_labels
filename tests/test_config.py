@@ -9,7 +9,7 @@
 # Source Code: https://github.com/CoReason-AI/coreason_etl_fda_labels
 
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import provisional as pr
 from hypothesis import strategies as st
 from pydantic import HttpUrl, ValidationError
@@ -36,6 +36,7 @@ def test_ingestion_config_manifest_invalid_url() -> None:
         IngestionConfigManifest(discovery_endpoint="not-a-url")
 
 
+@settings(max_examples=100, deadline=None)
 @given(url_str=pr.urls().filter(lambda u: u.startswith(("http://", "https://"))))
 def test_ingestion_config_manifest_hypothesis_valid_url(url_str: str) -> None:
     """Validate robust URL parsing using hypothesis standard provisional URLs."""
@@ -49,6 +50,7 @@ def test_ingestion_config_manifest_hypothesis_valid_url(url_str: str) -> None:
         pass
 
 
+@settings(max_examples=100, deadline=None)
 @given(invalid_url_str=st.text().filter(lambda x: not x.strip().lower().startswith("http")))
 def test_ingestion_config_manifest_hypothesis_invalid_url(invalid_url_str: str) -> None:
     """Validate robust rejection of invalid URLs using hypothesis generated strings."""
@@ -56,10 +58,11 @@ def test_ingestion_config_manifest_hypothesis_invalid_url(invalid_url_str: str) 
         IngestionConfigManifest(discovery_endpoint=invalid_url_str)  # type: ignore[arg-type, unused-ignore]
 
 
+@settings(max_examples=100, deadline=None)
 @given(
     invalid_scheme_url=st.builds(
         lambda scheme, domain, path: f"{scheme}://{domain}/{path}",
-        scheme=st.sampled_from(["ftp", "file", "ws", "wss", "tcp", "udp", "gopher", "mailto", "data"]),
+        scheme=st.sampled_from(["ftp", "file", "ws", "wss", "tcp", "udp", "gopher", "mailto", "data", "", " "]),
         domain=st.from_regex(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?\.[a-z]{2,}$", fullmatch=True),
         path=st.from_regex(r"^[a-zA-Z0-9/_-]*$", fullmatch=True),
     )
@@ -70,6 +73,7 @@ def test_ingestion_config_manifest_hypothesis_invalid_scheme(invalid_scheme_url:
         IngestionConfigManifest(discovery_endpoint=invalid_scheme_url)  # type: ignore[arg-type, unused-ignore]
 
 
+@settings(max_examples=100, deadline=None)
 @given(
     invalid_host_url=st.builds(
         lambda scheme, invalid_chars, path: f"{scheme}://domain{invalid_chars}name/{path}",
@@ -84,6 +88,7 @@ def test_ingestion_config_manifest_hypothesis_invalid_host(invalid_host_url: str
         IngestionConfigManifest(discovery_endpoint=invalid_host_url)  # type: ignore[arg-type, unused-ignore]
 
 
+@settings(max_examples=100, deadline=None)
 @given(
     partition_urls=st.lists(
         st.builds(
@@ -149,6 +154,7 @@ def test_partition_locator_manifest_hypothesis_mixed_case_sorting(partition_urls
     assert actual_sorted == expected_sorted
 
 
+@settings(max_examples=100, deadline=None)
 @given(
     auth_url=st.builds(
         lambda scheme, user, password, domain, path: f"{scheme}://{user}:{password}@{domain}/{path}",
@@ -165,6 +171,7 @@ def test_ingestion_config_manifest_hypothesis_auth_url(auth_url: str) -> None:
     assert str(config.discovery_endpoint) == str(HttpUrl(auth_url))
 
 
+@settings(max_examples=100, deadline=None)
 @given(
     ip_url=st.builds(
         lambda scheme, ip, port, path: f"{scheme}://{ip}:{port}/{path}",
@@ -180,6 +187,7 @@ def test_ingestion_config_manifest_hypothesis_ipv4_host_url(ip_url: str) -> None
     assert str(config.discovery_endpoint) == str(HttpUrl(ip_url))
 
 
+@settings(max_examples=100, deadline=None)
 @given(
     ipv6_url=st.builds(
         lambda scheme, ip, port, path: f"{scheme}://[{ip}]:{port}/{path}",
@@ -195,6 +203,7 @@ def test_ingestion_config_manifest_hypothesis_ipv6_host_url(ipv6_url: str) -> No
     assert str(config.discovery_endpoint) == str(HttpUrl(ipv6_url))
 
 
+@settings(max_examples=100, deadline=None)
 @given(
     long_url=st.builds(
         lambda scheme, domain, path, query: f"{scheme}://{domain}/{path}?q={query}",
