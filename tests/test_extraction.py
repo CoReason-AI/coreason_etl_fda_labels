@@ -15,6 +15,7 @@ import zipfile
 from typing import Any
 from unittest.mock import patch
 
+import pyarrow as pa
 import pytest
 import requests
 import responses
@@ -145,27 +146,30 @@ def test_epistemic_extraction_task_success(mock_tempfile: Any) -> None:
 
     # 4. Assertions
     assert len(batches) == 1
-    batch = batches[0]
-    assert len(batch) == 3
+    batch_table = batches[0]
+    assert isinstance(batch_table, pa.Table)
+    assert batch_table.num_rows == 3
 
     # Assert deterministic ID generation
     expected_id_1 = str(uuid.uuid5(NAMESPACE_FDALABEL, "abc-123"))
     expected_id_2 = str(uuid.uuid5(NAMESPACE_FDALABEL, "def-456"))
 
-    assert batch[0]["coreason_id"] == expected_id_1
-    assert batch[0]["partition_url"] == test_url_str
-    assert batch[0]["raw_data"] == mock_data[0]
+    # Convert table to dicts for easy assertions
+    batch_dicts = batch_table.to_pylist()
 
-    assert batch[1]["coreason_id"] == expected_id_2
-    assert batch[1]["partition_url"] == test_url_str
-    assert batch[1]["raw_data"] == mock_data[1]
+    assert batch_dicts[0]["coreason_id"] == expected_id_1
+    assert batch_dicts[0]["partition_url"] == test_url_str
+    assert batch_dicts[0]["raw_data"] == mock_data[0]
+
+    assert batch_dicts[1]["coreason_id"] == expected_id_2
+    assert batch_dicts[1]["partition_url"] == test_url_str
+    assert batch_dicts[1]["raw_data"] == mock_data[1]
 
     # Edge case: Missing set_id -> None
-    assert batch[2]["coreason_id"] is None
-    assert batch[2]["partition_url"] == test_url_str
+    assert batch_dicts[2]["coreason_id"] is None
+    assert batch_dicts[2]["partition_url"] == test_url_str
 
-    # Cast raw_data for typed dictionary access in tests
-    raw_data_2 = batch[2]["raw_data"]
+    raw_data_2 = batch_dicts[2]["raw_data"]
     assert isinstance(raw_data_2, dict)
     assert raw_data_2["brand_name"] == mock_data[2]["brand_name"]
 
@@ -259,10 +263,11 @@ def test_epistemic_extraction_task_batching(mock_tempfile: Any) -> None:
     batches = list(task.execute(test_url))
 
     assert len(batches) == 3
-    assert len(batches[0]) == 1000
-    assert len(batches[1]) == 1000
-    assert len(batches[2]) == 500
+    assert batches[0].num_rows == 1000
+    assert batches[1].num_rows == 1000
+    assert batches[2].num_rows == 500
 
     # Verify ID on the last item
     expected_id = str(uuid.uuid5(NAMESPACE_FDALABEL, "item-2499"))
-    assert batches[2][499]["coreason_id"] == expected_id
+    batch_3_dicts = batches[2].to_pylist()
+    assert batch_3_dicts[499]["coreason_id"] == expected_id
