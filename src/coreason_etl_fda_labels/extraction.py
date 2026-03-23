@@ -17,6 +17,7 @@ from typing import Any
 
 import ijson
 import polars as pl
+import pyarrow as pa
 import requests
 from pydantic import HttpUrl
 
@@ -37,17 +38,19 @@ class EpistemicExtractionTask:
     the hierarchy without loading the entire document into RAM.
     """
 
-    def process_polars_batch(self, batch: list[dict[str, Any]], partition_metadata: str) -> list[dict[str, Any]]:
+    def process_polars_batch(self, batch: list[dict[str, Any]], partition_metadata: str) -> pa.Table:
         """
         Transmutes raw JSON structures into a vectorized Polars manifold, generating
         deterministic UUIDv5 identifiers from the source FDA `set_id` before yielding.
+        Converts the highly optimized DataFrame into an Arrow Table to prevent
+        serialization overhead during DLT ingestion.
 
         Args:
             batch: A raw cognitive slice of FDA items from the uncompressed JSON stream.
             partition_metadata: The origin coordinate string for tracing data lineage.
 
         Returns:
-            A list of dictionary schemas representing the processed Bronze-layer data.
+            A PyArrow Table representation of the processed Bronze-layer data batch.
         """
         df = pl.DataFrame({"raw_data": batch})
 
@@ -65,11 +68,10 @@ class EpistemicExtractionTask:
             pl.lit(partition_metadata).alias("partition_url"),
         )
 
-        # Cast explicitly to satisfy typing since Polars dynamically creates dictionary types
-        result: list[dict[str, Any]] = df.to_dicts()
-        return result
+        # Yield PyArrow table for native, zero-copy DLT integration instead of to_dicts()
+        return df.to_arrow()
 
-    def execute(self, url: HttpUrl) -> Iterator[list[dict[str, Any]]]:
+    def execute(self, url: HttpUrl) -> Iterator[pa.Table]:
         """
         Initiates the secure streaming, uncompression, and yield sequence.
 
@@ -77,8 +79,8 @@ class EpistemicExtractionTask:
             url: The HTTPS target pointing to a ZIP-compressed JSON dataset.
 
         Yields:
-            Batches of standardized dictionaries representing the raw data and generated
-            `coreason_id` for downstream ingestion pipelines.
+            A stream of high-performance PyArrow Tables representing the raw data and
+            generated `coreason_id` for zero-copy downstream DLT ingestion.
 
         Raises:
             requests.exceptions.RequestException: If the external data pipeline fails.

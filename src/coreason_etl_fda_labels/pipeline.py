@@ -10,9 +10,9 @@
 
 from collections.abc import Iterator
 from datetime import UTC, datetime
-from typing import Any
 
 import dlt
+import pyarrow as pa
 
 from coreason_etl_fda_labels.config import IngestionConfigManifest
 from coreason_etl_fda_labels.discovery import EpistemicDiscoveryTask
@@ -39,7 +39,7 @@ def fda_spl_source(config: IngestionConfigManifest | None = None) -> dlt.sources
         config = IngestionConfigManifest()
 
     @dlt.resource(name="coreason_etl_fda_labels_bronze_fda_labels_raw", write_disposition="append")  # type: ignore[misc, unused-ignore]
-    def coreason_etl_fda_labels_bronze_fda_labels_raw() -> Iterator[list[dict[str, Any]]]:
+    def coreason_etl_fda_labels_bronze_fda_labels_raw() -> Iterator[pa.Table]:
         logger.info("Initializing Bronze Ingestion Manifold")
 
         # 1. Execute Discovery Phase
@@ -51,10 +51,11 @@ def fda_spl_source(config: IngestionConfigManifest | None = None) -> dlt.sources
         ingestion_ts = datetime.now(UTC).isoformat()
 
         for partition_url in locator_manifest.partition_urls:
-            for batch in extraction_task.execute(url=partition_url):
-                # Ensure ingestion_ts is injected into the record schema
-                for record in batch:
-                    record["ingestion_ts"] = ingestion_ts
-                yield batch
+            for batch_table in extraction_task.execute(url=partition_url):
+                # Inject ingestion_ts directly into the Arrow Table as a fast contiguous array
+                num_rows = batch_table.num_rows
+                ts_array = pa.array([ingestion_ts] * num_rows, type=pa.string())
+                augmented_table = batch_table.append_column("ingestion_ts", ts_array)
+                yield augmented_table
 
     return coreason_etl_fda_labels_bronze_fda_labels_raw()
