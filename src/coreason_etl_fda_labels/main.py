@@ -60,3 +60,7 @@ class EpistemicPipelineExecutionIntent:
         # Cast to dict for standardized cognitive snapshot
         result: dict[str, Any] = load_info.asdict()
         return result
+
+if __name__ == "__main__":
+    intent = EpistemicPipelineExecutionIntent()
+    intent.execute()
