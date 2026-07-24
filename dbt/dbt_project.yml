@@ -1,0 +1,25 @@
+name: 'coreason_etl_fda_labels'
+version: '1.0.0'
+config-version: 2
+
+profile: 'coreason_etl_fda_labels'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  coreason_etl_fda_labels:
+    silver:
+      +materialized: table
+      +schema: silver
+    gold:
+      +materialized: view
+      +schema: gold
